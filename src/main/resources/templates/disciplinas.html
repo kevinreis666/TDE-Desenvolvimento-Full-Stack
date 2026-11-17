@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Disciplinas - Gestão de Avaliações</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">Gestão de Avaliações</a>
+        <div class="d-flex align-items-center text-white">
+            <a href="/dashboard" class="btn btn-outline-secondary btn-sm text-white me-3">Voltar ao Painel</a>
+            <span class="me-3" th:text="${nome} + ' (' + ${tipo} + ')'">Usuário</span>
+            <a href="/logout" class="btn btn-outline-light btn-sm">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Disciplinas Cadastradas</h3>
+        <button th:if="${tipo == 'ADMIN'}" class="btn btn-primary" onclick="abrirModalNovo()">
+            + Nova Disciplina
+        </button>
+    </div>
+
+    <!-- Filtro por Curso (Requisito do PDF para qualquer usuário logado) -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+            <form th:action="@{/disciplinas}" method="get" class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <label class="col-form-label fw-semibold">Filtrar por Curso:</label>
+                </div>
+                <div class="col-md-4">
+                    <select name="cursoId" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Todos os cursos</option>
+                        <option th:each="c : ${cursos}"
+                                th:value="${c.id}"
+                                th:text="${c.nome}"
+                                th:selected="${c.id == cursoIdSelecionado}"></option>
+                    </select>
+                </div>
+                <div class="col-auto" th:if="${cursoIdSelecionado != null}">
+                    <a href="/disciplinas" class="btn btn-sm btn-outline-secondary">Limpar Filtro</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    <div th:if="${sucesso}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Tabela de Disciplinas -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Curso</th>
+                        <th>Carga Horária</th>
+                        <th>Turno</th>
+                        <th th:if="${tipo == 'ADMIN'}" class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="disc : ${pagina.content}">
+                        <td th:text="${disc.id}">1</td>
+                        <td>
+                            <div class="fw-semibold" th:text="${disc.nome}">Desenvolvimento Full Stack</div>
+                            <small class="text-muted" th:text="${disc.descricao}">Descrição</small>
+                        </td>
+                        <td th:text="${disc.cursoNome}">Análise de Sistemas</td>
+                        <td th:text="${disc.cargaHoraria} + 'h'">80h</td>
+                        <td>
+                            <span class="badge bg-info text-dark" th:text="${disc.turno}">NOTURNO</span>
+                        </td>
+                        <td th:if="${tipo == 'ADMIN'}" class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1"
+                                    th:data-id="${disc.id}"
+                                    th:data-nome="${disc.nome}"
+                                    th:data-descricao="${disc.descricao}"
+                                    th:data-cargahoraria="${disc.cargaHoraria}"
+                                    th:data-turno="${disc.turno}"
+                                    th:data-cursoid="${disc.cursoId}"
+                                    onclick="abrirModalEditar(this)">
+                                Editar
+                            </button>
+                            <form th:action="@{/disciplinas/remover/{id}(id=${disc.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('Tem certeza que deseja remover esta disciplina?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(pagina.content)}">
+                        <td colspan="6" class="text-center text-muted py-4">Nenhuma disciplina encontrada.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação mantendo o filtro de curso -->
+        <div class="card-footer d-flex justify-content-between align-items-center" th:if="${pagina.totalPages > 0}">
+            <span class="text-muted small">
+                Página <strong th:text="${pagina.page + 1}">1</strong> de <strong th:text="${pagina.totalPages}">1</strong>
+                (Total: <span th:text="${pagina.totalElements}">0</span> registros)
+            </span>
+            <div>
+                <a th:if="${pagina.page > 0}"
+                   th:href="@{/disciplinas(cursoId=${cursoIdSelecionado}, page=${pagina.page - 1}, size=${pagina.size})}"
+                   class="btn btn-sm btn-outline-secondary">Anterior</a>
+
+                <a th:if="${!pagina.last}"
+                   th:href="@{/disciplinas(cursoId=${cursoIdSelecionado}, page=${pagina.page + 1}, size=${pagina.size})}"
+                   class="btn btn-sm btn-outline-secondary">Próxima</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Criar / Editar Disciplina -->
+<div class="modal fade" id="disciplinaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form th:action="@{/disciplinas/salvar}" method="post" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitulo">Nova Disciplina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="id" id="discId">
+                <div class="mb-3">
+                    <label class="form-label">Curso *</label>
+                    <select name="cursoId" id="discCursoId" class="form-select" required>
+                        <option value="">Selecione um curso...</option>
+                        <option th:each="c : ${cursos}" th:value="${c.id}" th:text="${c.nome}"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nome da Disciplina *</label>
+                    <input type="text" name="nome" id="discNome" class="form-control" required minlength="2" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea name="descricao" id="discDescricao" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Carga Horária (horas) *</label>
+                        <input type="number" name="cargaHoraria" id="discCargaHoraria" class="form-control" required min="1">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Turno *</label>
+                        <select name="turno" id="discTurno" class="form-select" required>
+                            <option value="NOTURNO">Noturno</option>
+                            <option value="VESPERTINO">Vespertino</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const modal = new bootstrap.Modal(document.getElementById('disciplinaModal'));
+
+    function abrirModalNovo() {
+        document.getElementById('modalTitulo').innerText = 'Nova Disciplina';
+        document.getElementById('discId').value = '';
+        document.getElementById('discCursoId').value = '';
+        document.getElementById('discNome').value = '';
+        document.getElementById('discDescricao').value = '';
+        document.getElementById('discCargaHoraria').value = '80';
+        document.getElementById('discTurno').value = 'NOTURNO';
+        modal.show();
+    }
+
+    function abrirModalEditar(btn) {
+        document.getElementById('modalTitulo').innerText = 'Editar Disciplina';
+        document.getElementById('discId').value = btn.getAttribute('data-id');
+        document.getElementById('discCursoId').value = btn.getAttribute('data-cursoid');
+        document.getElementById('discNome').value = btn.getAttribute('data-nome');
+        document.getElementById('discDescricao').value = btn.getAttribute('data-descricao') || '';
+        document.getElementById('discCargaHoraria').value = btn.getAttribute('data-cargahoraria');
+        document.getElementById('discTurno').value = btn.getAttribute('data-turno');
+        modal.show();
+    }
+</script>
+</body>
+</html>

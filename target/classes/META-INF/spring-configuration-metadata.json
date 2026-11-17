@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "api.base-url",
+      "type": "java.lang.String",
+      "description": "URL base da API Backend."
+    }
+  ]
+}

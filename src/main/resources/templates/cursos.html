@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Cursos - Gestão de Avaliações</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">Gestão de Avaliações</a>
+        <div class="d-flex align-items-center text-white">
+            <a href="/dashboard" class="btn btn-outline-secondary btn-sm text-white me-3">Voltar ao Painel</a>
+            <span class="me-3" th:text="${nome} + ' (' + ${tipo} + ')'">Usuário</span>
+            <a href="/logout" class="btn btn-outline-light btn-sm">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Cursos Cadastrados</h3>
+        <button th:if="${tipo == 'ADMIN'}" class="btn btn-primary" onclick="abrirModalNovo()">
+            + Novo Curso
+        </button>
+    </div>
+
+    <!-- Alertas de feedback -->
+    <div th:if="${sucesso}" class="alert alert-success alert-dismissible fade show">
+        <span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show">
+        <span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Tabela de Cursos -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Formato</th>
+                        <th th:if="${tipo == 'ADMIN'}" class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="curso : ${pagina.content}">
+                        <td th:text="${curso.id}">1</td>
+                        <td th:text="${curso.nome}" class="fw-semibold">Sistemas</td>
+                        <td th:text="${curso.descricao}">Descrição</td>
+                        <td>
+                            <span class="badge bg-secondary" th:text="${curso.formato}">PRESENCIAL</span>
+                        </td>
+                        <td th:if="${tipo == 'ADMIN'}" class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1"
+                                    th:data-id="${curso.id}"
+                                    th:data-nome="${curso.nome}"
+                                    th:data-descricao="${curso.descricao}"
+                                    th:data-formato="${curso.formato}"
+                                    onclick="abrirModalEditar(this)">
+                                Editar
+                            </button>
+                            <form th:action="@{/cursos/remover/{id}(id=${curso.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('Tem certeza que deseja remover este curso?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(pagina.content)}">
+                        <td colspan="5" class="text-center text-muted py-4">Nenhum curso encontrado.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação -->
+        <div class="card-footer d-flex justify-content-between align-items-center" th:if="${pagina.totalPages > 0}">
+            <span class="text-muted small">
+                Página <strong th:text="${pagina.page + 1}">1</strong> de <strong th:text="${pagina.totalPages}">1</strong>
+                (Total: <span th:text="${pagina.totalElements}">0</span> registros)
+            </span>
+            <div>
+                <a th:if="${pagina.page > 0}"
+                   th:href="@{/cursos(page=${pagina.page - 1}, size=${pagina.size})}"
+                   class="btn btn-sm btn-outline-secondary">Anterior</a>
+
+                <a th:if="${!pagina.last}"
+                   th:href="@{/cursos(page=${pagina.page + 1}, size=${pagina.size})}"
+                   class="btn btn-sm btn-outline-secondary">Próxima</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Criar / Editar Curso -->
+<div class="modal fade" id="cursoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form th:action="@{/cursos/salvar}" method="post" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitulo">Novo Curso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="id" id="cursoId">
+                <div class="mb-3">
+                    <label class="form-label">Nome do Curso *</label>
+                    <input type="text" name="nome" id="cursoNome" class="form-control" required minlength="2" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea name="descricao" id="cursoDescricao" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Formato de Aula *</label>
+                    <select name="formato" id="cursoFormato" class="form-select" required>
+                        <option value="PRESENCIAL">Presencial</option>
+                        <option value="EAD">EAD</option>
+                        <option value="SEMI_PRESENCIAL">Semi-presencial</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const modal = new bootstrap.Modal(document.getElementById('cursoModal'));
+
+    function abrirModalNovo() {
+        document.getElementById('modalTitulo').innerText = 'Novo Curso';
+        document.getElementById('cursoId').value = '';
+        document.getElementById('cursoNome').value = '';
+        document.getElementById('cursoDescricao').value = '';
+        document.getElementById('cursoFormato').value = 'PRESENCIAL';
+        modal.show();
+    }
+
+    function abrirModalEditar(btn) {
+        document.getElementById('modalTitulo').innerText = 'Editar Curso';
+        document.getElementById('cursoId').value = btn.getAttribute('data-id');
+        document.getElementById('cursoNome').value = btn.getAttribute('data-nome');
+        document.getElementById('cursoDescricao').value = btn.getAttribute('data-descricao') || '';
+        document.getElementById('cursoFormato').value = btn.getAttribute('data-formato');
+        modal.show();
+    }
+</script>
+</body>
+</html>
